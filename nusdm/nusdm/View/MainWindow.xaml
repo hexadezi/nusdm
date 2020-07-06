@@ -1,0 +1,198 @@
+﻿<Window
+    x:Class="nusdm.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:nusdm"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="NUS Download Manager"
+    Width="460"
+    Height="413"
+    d:DesignHeight="413"
+    d:DesignWidth="460"
+    FocusManager.FocusedElement="{Binding ElementName=txtFilter}"
+    SnapsToDevicePixels="True"
+    TextOptions.TextFormattingMode="Display"
+    UseLayoutRounding="True"
+    WindowStartupLocation="CenterScreen"
+    mc:Ignorable="d">
+
+    <Window.Resources>
+
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+
+        <Style x:Key="borderRegionStyle">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ElementName=tblRegion, Path=Text}" Value="">
+                    <Setter Property="Border.Visibility" Value="Collapsed" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ElementName=tblRegion, Path=Text}" Value="EUR">
+                    <Setter Property="Border.Background" Value="#003399" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ElementName=tblRegion, Path=Text}" Value="JPN">
+                    <Setter Property="Border.Background" Value="White" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ElementName=tblRegion, Path=Text}" Value="USA">
+                    <Setter Property="Border.Background" Value="#3C3B6E" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+
+        <Style TargetType="TextBox">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TextBox}">
+                        <Border
+                            x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            SnapsToDevicePixels="True">
+                            <ScrollViewer
+                                x:Name="PART_ContentHost"
+                                Focusable="false"
+                                HorizontalScrollBarVisibility="Hidden"
+                                VerticalScrollBarVisibility="Hidden" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#C3E0EE" />
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="true">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#26A0DA" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+    </Window.Resources>
+
+    <DockPanel>
+        <TextBox
+            Name="txtFilter"
+            Grid.Row="0"
+            MinHeight="25"
+            Margin="3,3,3,3"
+            VerticalContentAlignment="Center"
+            DockPanel.Dock="Top"
+            Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged, Delay=40}" />
+
+        <Border
+            Height="58"
+            Margin="3,0,3,3"
+            BorderBrush="#ABADB3"
+            BorderThickness="1"
+            DockPanel.Dock="Bottom">
+            <TextBox
+                Padding="1,2,1,2"
+                Background="#FFECECEC"
+                BorderThickness="0"
+                FontSize="11"
+                IsReadOnly="True"
+                Text="{Binding Log}"
+                TextChanged="TextBox_TextChanged"
+                TextWrapping="Wrap" />
+        </Border>
+
+        <ListBox
+            
+            Name="lbxTitles"
+            Grid.Row="1"
+            Margin="3,0,3,3"
+            Grid.IsSharedSizeScope="True"
+            ItemsSource="{Binding Titles}"
+            SelectedItem="{Binding SelectedItem}"
+            VirtualizingPanel.IsVirtualizing="True"
+            VirtualizingPanel.VirtualizationMode="Recycling">
+
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <EventSetter Event="RequestBringIntoView" Handler="ProjectListView_OnRequestBringIntoView"/>
+
+                    <Setter Property="Margin" Value="0,0,1,1" />
+                    <Setter Property="Padding" Value="0" />
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="BorderBrush" Value="#26A0DA" />
+                            <Setter Property="Background" Value="#C3E0EE" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="BorderBrush" Value="#26A0DA" />
+                            <Setter Property="Background" Value="#9BCEE7" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </ListBox.ItemContainerStyle>
+
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <DataTemplate.Resources>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontFamily" Value="Consolas" />
+                            <Setter Property="VerticalAlignment" Value="Center" />
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </Trigger>
+                                <Trigger Property="Text" Value="EUR">
+                                    <Setter Property="Foreground" Value="#FFCC00" />
+                                </Trigger>
+                                <Trigger Property="Text" Value="JPN">
+                                    <Setter Property="Foreground" Value="#bc002d" />
+                                </Trigger>
+                                <Trigger Property="Text" Value="USA">
+                                    <Setter Property="Foreground" Value="White" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataTemplate.Resources>
+                    <StackPanel Margin="2">
+                        <StackPanel Height="20" Orientation="Horizontal">
+                            <Border
+                                x:Name="brdRegion"
+                                Margin="0,0,3,0"
+                                BorderBrush="Black"
+                                BorderThickness="1"
+                                CornerRadius="1"
+                                Style="{StaticResource ResourceKey=borderRegionStyle}">
+                                <TextBlock
+                                    Name="tblRegion"
+                                    Padding="3,0,3,0"
+                                    VerticalAlignment="Center"
+                                    FontWeight="SemiBold"
+                                    Text="{Binding Region}"
+                                    TextAlignment="Center" />
+                            </Border>
+                            <TextBlock
+                                FontFamily="Segoe UI"
+                                FontWeight="SemiBold"
+                                Text="{Binding Name}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding TitleType}" />
+                        </StackPanel>
+
+                        <TextBlock Margin="0,0,5,0" Text="{Binding TitleId}" />
+                        <TextBlock Text="{Binding TitleKey}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            <ListBox.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Command="{Binding CmdDownloadTitle}" Header="Download Title" />
+                    <MenuItem Header="Download Update" />
+                    <MenuItem Header="Download DLC" />
+                    <Separator />
+                    <MenuItem Command="{Binding CmdCopyName}" Header="Copy Name" />
+                    <MenuItem Command="{Binding CmdCopyTitleId}" Header="Copy Title-ID" />
+                    <MenuItem Command="{Binding CmdCopyTitleKey}" Header="Copy Title-Key" />
+                </ContextMenu>
+            </ListBox.ContextMenu>
+        </ListBox>
+
+    </DockPanel>
+</Window>
