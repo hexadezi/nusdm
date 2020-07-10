@@ -43,7 +43,6 @@ The following dependencies are included in the executable.
 
 [crediar/cdecrypt](https://code.google.com/archive/p/cdecrypt)
 
-[Pixel perfect](https://www.flaticon.com/de/autoren/pixel-perfect)
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details
