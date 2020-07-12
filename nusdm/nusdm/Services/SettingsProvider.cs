@@ -7,7 +7,7 @@ namespace nusdm
 	public class Settings
 	{
 		public string CommonKey { get; set; } = "";
-		public string TitleFile { get; set; } = "json";
+		public string TitleFile { get; set; } = "titledb.json";
 		public string SavePath { get; set; } = "";
 		public string NintendoBaseUrl { get; set; } = "http://ccs.cdn.c.shop.nintendowifi.net/ccs/download/";
 		public bool DownloadParallel { get; set; } = true;
