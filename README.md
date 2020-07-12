@@ -25,6 +25,7 @@ Decrypt | If true, the downloaded files will be decrypted after download. <br/> 
 DeleteAppFiles | Files will be deleted after decryption.
 SkipExistingFiles | It will skip download, if files exist. Sometimes files are downloaded even though they exist. <br/> This is due to incorrect information in the metadata.
 DownloadH3Files | If true, h3 files will be downloaded.
+MaxDegreeOfParallelism | Maximum number of concurrent downloads.
 
 ## Download
 Download here: https://github.com/labo89/nusdm/releases
