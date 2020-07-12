@@ -4,7 +4,8 @@ Download Wii U games from the Nintendo Update Server.
 The keys will be generated. They are not in the json file.
 
 ## Screenshot
-![](https://github.com/"")
+![](https://github.com/labo89/nusdm/blob/master/screenshots/screen_1.png)
+![](https://github.com/labo89/nusdm/blob/master/screenshots/screen_2.png)
 
 ## Prerequisites
 [.NET Core 3.1](https://dotnet.microsoft.com/download/dotnet-core/3.1)
