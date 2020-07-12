@@ -19,9 +19,9 @@ namespace nusdm
 	{
 		#region Private Fields
 
+		private readonly object __lockObj = new object();
 		private readonly string COMMONKEY = SettingsProvider.Settings.CommonKey.ToString();
 		private readonly string commonKeyHash = "7835902d8f70f315305f34edf2f05923";
-		private readonly object __lockObj = new object();
 		private string filter;
 		private bool isIdle = true;
 		private string logEntry;
@@ -54,6 +54,7 @@ namespace nusdm
 
 		#region Public Properties
 
+		private string windowTitle;
 		public RelayCommand CmdClearLog { get; private set; }
 		public RelayCommand CmdCopyLog { get; private set; }
 		public RelayCommand CmdCopyName { get; private set; }
@@ -65,9 +66,7 @@ namespace nusdm
 		public string Filter { get { return filter; } set { if (value != filter) { filter = value; titlesView.Refresh(); OnPropertyChanged(); } } }
 		public bool IsIdle { get { return isIdle; } set { isIdle = value; OnPropertyChanged(); } }
 		public string Log { get { return logEntry; } set { logEntry = value; OnPropertyChanged(); } }
-
 		public Title SelectedItem { get; set; }
-
 		public bool SelectedItemDlcAvailable
 		{
 			get
@@ -101,7 +100,7 @@ namespace nusdm
 		}
 
 		public List<Title> Titles { get; set; }
-
+		public string WindowsTitle { get { return windowTitle; } set { windowTitle = value; OnPropertyChanged(); } }
 		#endregion Public Properties
 
 
@@ -280,7 +279,7 @@ namespace nusdm
 									else
 									{
 										int pad = contentIds.Count.ToString().Length;
-										AddLogEntry(String.Format(" + Downloading Content No. {0} / {1} - {2}.app ({3} bytes)", 
+										AddLogEntry(String.Format(" + Downloading Content No. {0} / {1} - {2}.app ({3} bytes)",
 											(i + 1).ToString().PadLeft(pad),
 											contentIds.Count.ToString().PadLeft(pad),
 											cidStr,

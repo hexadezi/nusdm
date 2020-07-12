@@ -45,7 +45,17 @@
 			FontWeight="SemiBold"
 			PreviewKeyDown="txtFilter_PreviewKeyDown"
 			Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged, Delay=50}"
-			Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}" />
+			Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}">
+			<TextBox.Style>
+				<Style TargetType="TextBox">
+					<Style.Triggers>
+						<DataTrigger Binding="{Binding IsIdle}" Value="True">
+							<Setter Property="FocusManager.FocusedElement" Value="{Binding RelativeSource={RelativeSource Mode=Self}}" />
+						</DataTrigger>
+					</Style.Triggers>
+				</Style>
+			</TextBox.Style>
+		</TextBox>
 
 		<ListBox
 			Name="lbxTitles"
