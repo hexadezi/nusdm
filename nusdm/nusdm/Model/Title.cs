@@ -25,7 +25,7 @@ namespace nusdm
 
         public string TitleType { get; set; }
 
-
+        [JsonConstructor]
         public Title(string titleId, string titleKey, string name, string region)
         {
             if (!String.IsNullOrEmpty(titleId))
@@ -62,11 +62,11 @@ namespace nusdm
 
             if (TitleId.StartsWith("00050000", StringComparison.OrdinalIgnoreCase))
             {
-                TitleType = "Game";
+                TitleType = "GAME";
             }
             else if (TitleId.StartsWith("00050002", StringComparison.OrdinalIgnoreCase))
             {
-                TitleType = "Demo";
+                TitleType = "DEMO";
             }
             else if (TitleId.StartsWith("0005000C", StringComparison.OrdinalIgnoreCase))
             {
@@ -74,25 +74,24 @@ namespace nusdm
             }
             else if (TitleId.StartsWith("0005000E", StringComparison.OrdinalIgnoreCase))
             {
-                TitleType = "Update";
+                TitleType = "UPDATE";
             }
             else if (TitleId.StartsWith("00050010", StringComparison.OrdinalIgnoreCase))
             {
-                TitleType = "System Application";
+                TitleType = "SYSAPP";
             }
             else if (TitleId.StartsWith("0005001B", StringComparison.OrdinalIgnoreCase))
             {
-                TitleType = "System Data Archive";
+                TitleType = "SYSDAT";
             }
             else if (TitleId.StartsWith("00050030", StringComparison.OrdinalIgnoreCase))
             {
-                TitleType = "Applet title";
+                TitleType = "APPLET";
             }
             else
             {
-                TitleType = "Unknown Title-ID Type";
+                TitleType = "UNKNOWN";
             }
-
         }
 
         private string SanitizeString(string s)
@@ -102,7 +101,7 @@ namespace nusdm
 
         public override string ToString()
         {
-            return $"{TitleId.Replace(" ", "")} {TitleKey.Replace(" ", "")} {Region} {Name}";
+            return $"{TitleId} {Region} {Name} {TitleType} {TitleKey}";
         }
 
 

@@ -84,6 +84,10 @@ namespace nusdm.Services
         }
         public static string FormatHexString(string s)
         {
+            if (s.Contains(" "))
+            {
+                return s;
+            }
             for (int i = 2; i < s.Length; i += 3)
             {
                 s = s.Insert(i, " ");
