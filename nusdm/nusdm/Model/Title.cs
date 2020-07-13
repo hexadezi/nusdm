@@ -101,7 +101,7 @@ namespace nusdm
 
         public override string ToString()
         {
-            return $"{TitleId} {Region} {Name} {TitleType} {TitleKey}";
+            return $"{TitleId} {Region} {Name} {TitleType}";
         }
 
 
