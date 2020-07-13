@@ -17,7 +17,7 @@ Download the package. Put the Common Key in the config.json file and start the e
 
 Setting | Explanation
 ------------ | -------------
-CommonKey | Hier ist nicht viel zu erklären.
+CommonKey | There is nothing much to say.
 TitleFile | The file that contains the titles in JSON format. <br/> The following properties are read: **titleID, titleKey, name, region** <br/> If no key is specified, one is generated.
 SavePath | The path should have the following format: C:\\\Users\\\Dave\\\Desktop\\\
 NintendoBaseUrl | Address of the Content Delivery Network
