@@ -5,7 +5,6 @@
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:local="clr-namespace:nusdm"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-	Title="NUS Download Manager"
 	Width="580"
 	Height="419"
 	FocusManager.FocusedElement="{Binding ElementName=txtFilter}"
@@ -14,7 +13,8 @@
 	TextOptions.TextFormattingMode="Display"
 	UseLayoutRounding="True"
 	WindowStartupLocation="CenterScreen"
-	mc:Ignorable="d">
+	mc:Ignorable="d"
+	Title="{Binding WindowTitle, TargetNullValue=NUS Download Manager}">
 
 	<Window.Resources>
 
@@ -43,7 +43,7 @@
 			VerticalContentAlignment="Center"
 			DockPanel.Dock="Top"
 			FontWeight="SemiBold"
-			PreviewKeyDown="txtFilter_PreviewKeyDown"
+			PreviewKeyDown="TxtFilter_PreviewKeyDown"
 			Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged, Delay=50}"
 			Visibility="{Binding IsIdle, Converter={StaticResource BoolToVis}}">
 			<TextBox.Style>

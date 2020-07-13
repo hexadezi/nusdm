@@ -12,7 +12,7 @@ namespace nusdm
 	{
 		#region Private Fields
 
-		private MainWindowViewModel mainWindowViewModel;
+		private readonly MainWindowViewModel mainWindowViewModel;
 
 		#endregion Private Fields
 
@@ -83,7 +83,7 @@ namespace nusdm
 			sv.ScrollToBottom();
 		}
 
-		private void txtFilter_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+		private void TxtFilter_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
 		{
 			if (e.Key == Key.Enter || e.Key == Key.Down)
 			{

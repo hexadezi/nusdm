@@ -100,7 +100,7 @@ namespace nusdm
 		}
 
 		public List<Title> Titles { get; set; }
-		public string WindowsTitle { get { return windowTitle; } set { windowTitle = value; OnPropertyChanged(); } }
+		public string WindowTitle { get { return windowTitle; } set { windowTitle = value; OnPropertyChanged(); } }
 		#endregion Public Properties
 
 
@@ -134,6 +134,8 @@ namespace nusdm
 			IsIdle = false;
 
 			Title title = Titles.Find(o => o.TitleId == t);
+
+			WindowTitle = $"[{title.Region}] [{title.TitleType}] {(String.IsNullOrEmpty(title.Name) ? title.TitleId : title.Name)}";
 
 			AddLogEntry("Prepare download...");
 
@@ -189,6 +191,8 @@ namespace nusdm
 							titleSize += tmd.GetContentSize((uint)i);
 
 						AddLogEntry($" + Estimated Content Size: {FormatBytes(titleSize)}");
+
+						WindowTitle += " " + FormatBytes(titleSize);
 
 						string titleType = title.TitleType; ;
 
