@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -91,14 +93,14 @@ namespace nusdm
 				e.Handled = true;
 			}
 		}
+
 		private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
 		{
-			// If escape is presses, then close the window.
 			if (Key.Escape == e.Key)
 			{
 				Close();
 			}
-			if (Keyboard.Modifiers != ModifierKeys.Control)
+			else if (Keyboard.Modifiers != ModifierKeys.Control)
 			{
 				// Allow alphanumeric and space.
 				if (e.Key >= Key.D0 && e.Key <= Key.D9 ||

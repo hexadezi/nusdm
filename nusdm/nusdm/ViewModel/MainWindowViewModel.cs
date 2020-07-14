@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -47,7 +48,6 @@ namespace nusdm
 
 			Decryptor.DownloadCDecrypt();
 
-			titlesView.Filter = UserFilter;
 		}
 
 		#endregion Public Constructors
@@ -99,7 +99,15 @@ namespace nusdm
 			}
 		}
 
-		public List<Title> Titles { get; set; }
+		//public List<Title> Titles { get; set; }
+		private ObservableCollection<Title> titles;
+
+		public ObservableCollection<Title> Titles
+		{
+			get { return titles; }
+			set { titles = value; OnPropertyChanged(); }
+		}
+
 		public string WindowTitle { get { return windowTitle; } set { windowTitle = value; OnPropertyChanged(); } }
 		#endregion Public Properties
 
@@ -133,7 +141,8 @@ namespace nusdm
 		{
 			IsIdle = false;
 
-			Title title = Titles.Find(o => o.TitleId == t);
+			//Title title = Titles.Find(o => o.TitleId == t);
+			Title title = Titles.First(o => o.TitleId == t);
 
 			WindowTitle = $"[{title.Region}] [{title.TitleType}] {(String.IsNullOrEmpty(title.Name) ? title.TitleId : title.Name)}";
 
@@ -477,20 +486,28 @@ namespace nusdm
 
 		private void InitializeList()
 		{
-			string fileName = SettingsProvider.Settings.TitleFile;
+			Task.Run(() =>
+			{
 
-			string replaceStr = " ";
+				string fileName = SettingsProvider.Settings.TitleFile;
 
-			AddLogEntry("Reading " + new FileInfo(SettingsProvider.Settings.TitleFile).Name);
+				string replaceStr = " ";
 
-			string text = File.ReadAllText(fileName).Replace(@"\r\n", replaceStr).Replace(@"\n", replaceStr).Replace(@"\r", replaceStr);
-			text = Regex.Replace(text, @"\s+", " ");
+				AddLogEntry("Reading " + new FileInfo(SettingsProvider.Settings.TitleFile).Name);
 
-			Titles = JsonConvert.DeserializeObject<List<Title>>(text);
+				string text = File.ReadAllText(fileName).Replace(@"\r\n", replaceStr).Replace(@"\n", replaceStr).Replace(@"\r", replaceStr);
+				text = Regex.Replace(text, @"\s+", " ");
 
-			AddLogEntry($"{Titles.Count} titles parsed");
+				Titles = JsonConvert.DeserializeObject<ObservableCollection<Title>>(text);
 
-			titlesView = CollectionViewSource.GetDefaultView(Titles);
+				AddLogEntry($"{Titles.Count} titles parsed");
+
+				titlesView = CollectionViewSource.GetDefaultView(Titles);
+
+				titlesView.Filter = UserFilter;
+
+			});
+
 		}
 		private bool UserFilter(object item)
 		{
