@@ -430,7 +430,6 @@ namespace nusdm
 				catch (Exception)
 				{
 					AddLogEntry(" + ABORTING DOWNLOAD OF THIS TITLE");
-					AddLogEntry(String.Format(" + -------------------------------------------------------------------", Path.GetFileName(saveDir)));
 				}
 				finally
 				{
