@@ -38,7 +38,6 @@ namespace nusdm
 			{
 				MessageBox.Show("Please specify the correct WII U common key in config file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 				Process.Start("notepad.exe", SettingsProvider.Savefile).WaitForExit();
-				//Process.Start(Process.GetCurrentProcess().MainModule.FileName);
 				Application.Current.Shutdown();
 			}
 
@@ -99,7 +98,6 @@ namespace nusdm
 			}
 		}
 
-		//public List<Title> Titles { get; set; }
 		private ObservableCollection<Title> titles;
 
 		public ObservableCollection<Title> Titles
