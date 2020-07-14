@@ -109,7 +109,6 @@ namespace nusdm
 		public string WindowTitle { get { return windowTitle; } set { windowTitle = value; OnPropertyChanged(); } }
 		#endregion Public Properties
 
-
 		#region Private Methods
 
 		// https://stackoverflow.com/a/2082893
@@ -135,36 +134,40 @@ namespace nusdm
 		}
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0063:Einfache using-Anweisung verwenden", Justification = "<Ausstehend>")]
-		private void DownloadTitle(string t)
+		private void DownloadTitle(string tid)
 		{
-			IsIdle = false;
-
-			//Title title = Titles.Find(o => o.TitleId == t);
-			Title title = Titles.First(o => o.TitleId == t);
-
-			WindowTitle = $"[{title.Region}] [{title.TitleType}] {(String.IsNullOrEmpty(title.Name) ? title.TitleId : title.Name)}";
-
-			AddLogEntry("Prepare download...");
-
-			string baseUrl = SettingsProvider.Settings.NintendoBaseUrl + title.TitleId + "/";
-			string saveDir = SettingsProvider.Settings.SavePath;
-
-			if (String.IsNullOrEmpty(title.Name))
-			{
-				saveDir = @$"{saveDir}{title.TitleType}\\{title.TitleId.Replace(" ", "")}";
-			}
-			else
-			{
-				saveDir = @$"{saveDir}{title.TitleType}\\[{title.Region}] {title.NameSanitized}";
-			}
-
-			if (!Directory.Exists(saveDir))
-			{
-				Directory.CreateDirectory(saveDir);
-			}
-
+			// Run everything in a separate thread
 			Task.Run(() =>
 			{
+				IsIdle = false;
+
+				// Search for the title in the collection
+				Title title = Titles.First(o => o.TitleId == tid);
+
+				// Set the window titles prop of the file which will be downloaded
+				WindowTitle = $"[{title.Region}] [{title.TitleType}] {(String.IsNullOrEmpty(title.Name) ? title.TitleId : title.Name)}";
+
+				AddLogEntry("Preparing download...");
+
+				string baseUrl = SettingsProvider.Settings.NintendoBaseUrl + title.TitleId + "/";
+
+				string saveDir = SettingsProvider.Settings.SavePath;
+
+				if (String.IsNullOrEmpty(title.Name))
+				{
+					saveDir = @$"{saveDir}{title.TitleType}\\{title.TitleId.Replace(" ", "")}";
+				}
+				else
+				{
+					saveDir = @$"{saveDir}{title.TitleType}\\[{title.Region}] {title.NameSanitized}";
+				}
+
+				// Create the save directory
+				if (!Directory.Exists(saveDir))
+				{
+					Directory.CreateDirectory(saveDir);
+				}
+
 				UInt64 titleSize = 0;
 				Ticket ticket;
 				Tmd tmd;
@@ -264,77 +267,7 @@ namespace nusdm
 					// --------------------------------
 					if (SettingsProvider.Settings.DownloadParallel)
 					{
-						List<string> contentIds = new List<string>();
-
-						// Download Content .app and .h3 files
-						for (uint i = 0; i < tmd.GetContentCount(); i++)
-						{
-							contentIds.Add(tmd.GetContentIDString(i));
-						}
-
-						Parallel.ForEach(contentIds, new ParallelOptions { MaxDegreeOfParallelism = SettingsProvider.Settings.MaxDegreeOfParallelism }, (content, state, i) =>
-						{
-							using (WebClient wc = new WebClient())
-							{
-								string cidStr = content;
-
-								// .app files
-								try
-								{
-									string contentFilePath = saveDir + "\\" + cidStr + ".app";
-
-									if (SettingsProvider.Settings.SkipExistingFiles && File.Exists(contentFilePath) && (ulong)contentFilePath.GetFileLength() == tmd.GetContentSize((uint)i))
-									{
-										AddLogEntry(" + File: " + cidStr + ".app exists with correct size, skipping download...");
-									}
-									else
-									{
-										int pad = contentIds.Count.ToString().Length;
-										AddLogEntry(String.Format(" + Downloading Content No. {0} / {1} - {2}.app ({3} bytes)",
-											(i + 1).ToString().PadLeft(pad),
-											contentIds.Count.ToString().PadLeft(pad),
-											cidStr,
-											string.Format("{0:N0}", tmd.GetContentSize((uint)i))));
-										wc.DownloadFile(baseUrl + cidStr, saveDir + "\\" + cidStr + ".app");
-									}
-								}
-								catch (WebException e)
-								{
-									AddLogEntry(" + ERROR! Could not download " + cidStr + ".app");
-									throw e;
-								}
-								catch (IOException e)
-								{
-									AddLogEntry(" + ERROR! Could not save " + cidStr + ".app");
-									throw e;
-								}
-
-								if (SettingsProvider.Settings.DownloadH3Files)
-								{
-									// .h3 files
-									try
-									{
-										AddLogEntry(String.Format(" + Downloading H3 for Content No.{0} from Nintendo CDN - {1}.h3", i + 1, cidStr));
-										wc.DownloadFile(baseUrl + cidStr + ".h3", saveDir + "\\" + cidStr + ".h3");
-									}
-									catch (WebException e)
-									{
-										if (((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.NotFound)
-											AddLogEntry(String.Format(" + File {0}.h3 not found, ignoring...", cidStr));
-										else
-										{
-											AddLogEntry(" + ERROR! Could not download " + cidStr + ".h3");
-											throw e;
-										}
-									}
-									catch (IOException e)
-									{
-										AddLogEntry(" + ERROR! Could not save " + cidStr + ".h3");
-										throw e;
-									}
-								}
-							}
-						});
+						DownloadParallel(baseUrl, saveDir, tmd);
 					}
 
 					// --------------------------------
@@ -344,95 +277,12 @@ namespace nusdm
 					// --------------------------------
 					else
 					{
-						using (WebClient wc = new WebClient())
-						{
-							// Download Content .app and .h3 files
-							uint contentCount = tmd.GetContentCount();
-							for (uint i = 0; i < contentCount; i++)
-							{
-								string cidStr = tmd.GetContentIDString(i);
-
-								// .app files
-								try
-								{
-									string contentFilePath = saveDir + "\\" + cidStr + ".app";
-
-									if (SettingsProvider.Settings.SkipExistingFiles && File.Exists(contentFilePath) && (ulong)contentFilePath.GetFileLength() == tmd.GetContentSize(i))
-									{
-										ulong localFileSize = contentFilePath.GetFileLength();
-
-										AddLogEntry(" + File: " + cidStr + ".app exists with correct size, skipping download...");
-									}
-									else
-									{
-										AddLogEntry(String.Format(" + Downloading Content No. {0,3} / {1,3} - {2}.app ({3} bytes)", i + 1, contentCount, cidStr, tmd.GetContentSize(i)));
-										wc.DownloadFile(baseUrl + cidStr, saveDir + "\\" + cidStr + ".app");
-									}
-								}
-								catch (WebException e)
-								{
-									AddLogEntry(" + ERROR! Could not download " + cidStr + ".app");
-									Debug.WriteLine(e.Message);
-									throw e;
-								}
-								catch (IOException e)
-								{
-									AddLogEntry(" + ERROR! Could not save " + cidStr + ".app");
-									Debug.WriteLine(e.Message);
-									throw e;
-								}
-
-								if (SettingsProvider.Settings.DownloadH3Files)
-								{
-									// .h3 files
-									try
-									{
-										AddLogEntry(String.Format(" + Downloading H3 for Content No.{0} from Nintendo CDN - {1}.h3", i + 1, cidStr));
-										wc.DownloadFile(baseUrl + cidStr + ".h3", saveDir + "\\" + cidStr + ".h3");
-									}
-									catch (WebException e)
-									{
-										if (((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.NotFound)
-											AddLogEntry(String.Format(" + WARNING: {0}.h3 not found, ignoring...", cidStr));
-										else
-										{
-											AddLogEntry(" + ERROR! Could not download " + cidStr + ".h3");
-											Debug.WriteLine(e.Message);
-											throw e;
-										}
-									}
-									catch (IOException e)
-									{
-										AddLogEntry(" + ERROR! Could not save " + cidStr + ".h3");
-										Debug.WriteLine(e.Message);
-
-										throw e;
-									}
-								}
-							}
-						}
+						DownloadSequential(baseUrl, saveDir, tmd);
 					}
 
 					AddLogEntry(String.Format(" + {0}: {1} downloaded!", title.TitleType, Path.GetFileName(saveDir)));
 
-					if (SettingsProvider.Settings.Decrypt)
-					{
-						int rc = Decryptor.Decrypt(saveDir);
-						if (rc == 0)
-						{
-							AddLogEntry(String.Format(" + {0}: {1} decrypted!", title.TitleType, Path.GetFileName(saveDir)));
-						}
-						else
-						{
-							AddLogEntry(" + DECRYPTION FAILED");
-						}
-						if (SettingsProvider.Settings.DeleteAppFiles)
-						{
-							foreach (string f in Directory.EnumerateFiles(saveDir, "*.app")) { File.Delete(f); }
-							foreach (string f in Directory.EnumerateFiles(saveDir, "*.h3")) { File.Delete(f); }
-							foreach (string f in Directory.EnumerateFiles(saveDir, "title.*")) { File.Delete(f); }
-						}
-					}
+					Decrypt(title, saveDir);
 				}
 				catch (Exception)
 				{
@@ -446,10 +296,176 @@ namespace nusdm
 			});
 		}
 
+		private void DownloadSequential(string baseUrl, string saveDir, Tmd tmd)
+		{
+			using WebClient wc = new WebClient();
+			// Download Content .app and .h3 files
+			uint contentCount = tmd.GetContentCount();
+			for (uint i = 0; i < contentCount; i++)
+			{
+				string cidStr = tmd.GetContentIDString(i);
+
+				// .app files
+				try
+				{
+					string contentFilePath = saveDir + "\\" + cidStr + ".app";
+
+					if (SettingsProvider.Settings.SkipExistingFiles && File.Exists(contentFilePath) && (ulong)contentFilePath.GetFileLength() == tmd.GetContentSize(i))
+					{
+						ulong localFileSize = contentFilePath.GetFileLength();
+
+						AddLogEntry(" + File: " + cidStr + ".app exists with correct size, skipping download...");
+					}
+					else
+					{
+						AddLogEntry(String.Format(" + Downloading Content No. {0,3} / {1,3} - {2}.app ({3} bytes)", i + 1, contentCount, cidStr, tmd.GetContentSize(i)));
+						wc.DownloadFile(baseUrl + cidStr, saveDir + "\\" + cidStr + ".app");
+					}
+				}
+				catch (WebException e)
+				{
+					AddLogEntry(" + ERROR! Could not download " + cidStr + ".app");
+					Debug.WriteLine(e.Message);
+					throw e;
+				}
+				catch (IOException e)
+				{
+					AddLogEntry(" + ERROR! Could not save " + cidStr + ".app");
+					Debug.WriteLine(e.Message);
+					throw e;
+				}
+
+				if (SettingsProvider.Settings.DownloadH3Files)
+				{
+					// .h3 files
+					try
+					{
+						AddLogEntry(String.Format(" + Downloading H3 for Content No.{0} from Nintendo CDN - {1}.h3", i + 1, cidStr));
+						wc.DownloadFile(baseUrl + cidStr + ".h3", saveDir + "\\" + cidStr + ".h3");
+					}
+					catch (WebException e)
+					{
+						if (((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.NotFound)
+							AddLogEntry(String.Format(" + WARNING: {0}.h3 not found, ignoring...", cidStr));
+						else
+						{
+							AddLogEntry(" + ERROR! Could not download " + cidStr + ".h3");
+							Debug.WriteLine(e.Message);
+							throw e;
+						}
+					}
+					catch (IOException e)
+					{
+						AddLogEntry(" + ERROR! Could not save " + cidStr + ".h3");
+						Debug.WriteLine(e.Message);
+
+						throw e;
+					}
+				}
+			}
+		}
+
+		private void DownloadParallel(string baseUrl, string saveDir, Tmd tmd)
+		{
+			List<string> contentIds = new List<string>();
+
+			// Download Content .app and .h3 files
+			for (uint i = 0; i < tmd.GetContentCount(); i++)
+			{
+				contentIds.Add(tmd.GetContentIDString(i));
+			}
+
+			Parallel.ForEach(contentIds, new ParallelOptions { MaxDegreeOfParallelism = SettingsProvider.Settings.MaxDegreeOfParallelism }, (content, state, i) =>
+			{
+				using WebClient wc = new WebClient();
+				string cidStr = content;
+
+				// .app files
+				try
+				{
+					string contentFilePath = saveDir + "\\" + cidStr + ".app";
+
+					if (SettingsProvider.Settings.SkipExistingFiles && File.Exists(contentFilePath) && (ulong)contentFilePath.GetFileLength() == tmd.GetContentSize((uint)i))
+					{
+						AddLogEntry(" + File: " + cidStr + ".app exists with correct size, skipping download...");
+					}
+					else
+					{
+						int pad = contentIds.Count.ToString().Length;
+						AddLogEntry(String.Format(" + Downloading Content No. {0} / {1} - {2}.app ({3} bytes)",
+							(i + 1).ToString().PadLeft(pad),
+							contentIds.Count.ToString().PadLeft(pad),
+							cidStr,
+							string.Format("{0:N0}", tmd.GetContentSize((uint)i))));
+						wc.DownloadFile(baseUrl + cidStr, saveDir + "\\" + cidStr + ".app");
+					}
+				}
+				catch (WebException e)
+				{
+					AddLogEntry(" + ERROR! Could not download " + cidStr + ".app");
+					throw e;
+				}
+				catch (IOException e)
+				{
+					AddLogEntry(" + ERROR! Could not save " + cidStr + ".app");
+					throw e;
+				}
+
+				if (SettingsProvider.Settings.DownloadH3Files)
+				{
+					// .h3 files
+					try
+					{
+						AddLogEntry(String.Format(" + Downloading H3 for Content No.{0} from Nintendo CDN - {1}.h3", i + 1, cidStr));
+						wc.DownloadFile(baseUrl + cidStr + ".h3", saveDir + "\\" + cidStr + ".h3");
+					}
+					catch (WebException e)
+					{
+						if (((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.NotFound)
+							AddLogEntry(String.Format(" + File {0}.h3 not found, ignoring...", cidStr));
+						else
+						{
+							AddLogEntry(" + ERROR! Could not download " + cidStr + ".h3");
+							throw e;
+						}
+					}
+					catch (IOException e)
+					{
+						AddLogEntry(" + ERROR! Could not save " + cidStr + ".h3");
+						throw e;
+					}
+				}
+			});
+		}
+
+		private void Decrypt(Title title, string saveDir)
+		{
+			if (SettingsProvider.Settings.Decrypt)
+			{
+				int rc = Decryptor.Decrypt(saveDir);
+				if (rc == 0)
+				{
+					AddLogEntry(String.Format(" + {0}: {1} decrypted!", title.TitleType, Path.GetFileName(saveDir)));
+				}
+				else
+				{
+					AddLogEntry(" + DECRYPTION FAILED");
+				}
+				if (SettingsProvider.Settings.DeleteAppFiles)
+				{
+					foreach (string f in Directory.EnumerateFiles(saveDir, "*.app")) { File.Delete(f); }
+					foreach (string f in Directory.EnumerateFiles(saveDir, "*.h3")) { File.Delete(f); }
+					foreach (string f in Directory.EnumerateFiles(saveDir, "title.*")) { File.Delete(f); }
+				}
+			}
+		}
+
 		private void InitializeCommands()
 		{
 			CmdDownloadTitle = new RelayCommand(() => DownloadTitle(SelectedItem.TitleId));
+
 			CmdDownloadUpdate = new RelayCommand(() => DownloadTitle("0005000E" + SelectedItem.TitleId.Substring(8, 8)));
+
 			CmdDownloadDlc = new RelayCommand(() => DownloadTitle("0005000C" + SelectedItem.TitleId.Substring(8, 8)));
 
 			CmdCopyName = new RelayCommand(() =>
@@ -479,13 +495,12 @@ namespace nusdm
 							});
 
 			CmdCopyLog = new RelayCommand(() => Clipboard.SetText(Log));
+
 			CmdClearLog = new RelayCommand(() => Log = String.Empty);
 		}
 
 		private void InitializeList()
 		{
-			Task.Run(() =>
-			{
 
 				string fileName = SettingsProvider.Settings.TitleFile;
 
@@ -503,8 +518,6 @@ namespace nusdm
 				titlesView = CollectionViewSource.GetDefaultView(Titles);
 
 				titlesView.Filter = UserFilter;
-
-			});
 
 		}
 		private bool UserFilter(object item)
