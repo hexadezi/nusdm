@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FunKiiUNETThingy
+namespace nusdm
 {
     class Tmd
     {
-        private byte[] tmdData { get; set; }
+        private readonly byte[] tmdData;
 
         public Tmd(byte[] _tmdData)
         {
@@ -46,7 +46,7 @@ namespace FunKiiUNETThingy
             uint contentDataLoc = 0xB04 + (0x30 * contentIndex);
 
             byte[] id = new byte[4] { tmdData[contentDataLoc], tmdData[contentDataLoc + 1], tmdData[contentDataLoc + 2], tmdData[contentDataLoc + 3], };
-             
+
             string contentString = "";
             foreach (byte idbyte in id)
                 contentString += idbyte.ToString("x2");
@@ -75,7 +75,7 @@ namespace FunKiiUNETThingy
                 tmdData[contentDataLoc + 0xC],
                 tmdData[contentDataLoc + 0xD],
                 tmdData[contentDataLoc + 0xE],
-                tmdData[contentDataLoc + 0xF] 
+                tmdData[contentDataLoc + 0xF]
             };
             return size.ToUInt64();
         }

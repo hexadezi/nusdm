@@ -10,7 +10,6 @@ namespace nusdm
 		public string TitleFile { get; set; } = "titledb.json";
 		public string SavePath { get; set; } = "";
 		public string NintendoBaseUrl { get; set; } = "http://ccs.cdn.c.shop.nintendowifi.net/ccs/download/";
-		public bool DownloadParallel { get; set; } = true;
 		public bool Decrypt { get; set; } = true;
 		public bool DeleteAppFiles { get; set; } = true;
 		public bool SkipExistingFiles { get; set; } = false;
