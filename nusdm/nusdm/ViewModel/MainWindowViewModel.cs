@@ -25,34 +25,27 @@ namespace nusdm
 		private string filter;
 		private bool isIdle = true;
 		private string logEntry;
+		private ObservableCollection<Title> titles;
 		private ICollectionView titlesView;
-
+		private string windowTitle;
 		#endregion Private Fields
 
 		#region Public Constructors
 
 		public MainWindowViewModel()
 		{
-			if (Decryptor.GetHashMD5(Encoding.ASCII.GetBytes(COMMONKEY.ToLower())).ToLower() != commonKeyHash)
-			{
-				MessageBox.Show("Please specify the correct WII U common key in config file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-				Process.Start("notepad.exe", SettingsProvider.Savefile).WaitForExit();
-				Application.Current.Shutdown();
-			}
+			Decryptor.DownloadCDecrypt();
+
+			CheckCommonKey();
 
 			InitializeCommands();
 
 			InitializeList();
-
-			Decryptor.DownloadCDecrypt();
-
 		}
-
 		#endregion Public Constructors
 
 		#region Public Properties
 
-		private string windowTitle;
 		public RelayCommand CmdClearLog { get; private set; }
 		public RelayCommand CmdCopyLog { get; private set; }
 		public RelayCommand CmdCopyName { get; private set; }
@@ -96,9 +89,6 @@ namespace nusdm
 				return false;
 			}
 		}
-
-		private ObservableCollection<Title> titles;
-
 		public ObservableCollection<Title> Titles
 		{
 			get { return titles; }
@@ -109,6 +99,16 @@ namespace nusdm
 		#endregion Public Properties
 
 		#region Private Methods
+
+		private void CheckCommonKey()
+		{
+			if (Decryptor.GetHashMD5(Encoding.ASCII.GetBytes(COMMONKEY.ToLower())).ToLower() != commonKeyHash)
+			{
+				MessageBox.Show("Please specify the correct WII U common key in config file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+				Process.Start("notepad.exe", SettingsProvider.Savefile).WaitForExit();
+				Application.Current.Shutdown();
+			}
+		}
 
 		// https://stackoverflow.com/a/2082893
 		private static string FormatBytes(ulong bytes)
@@ -130,6 +130,96 @@ namespace nusdm
 			{
 				Log += DateTime.Now.ToString("HH:mm:ss") + " | " + line + Environment.NewLine;
 			}
+		}
+
+		private void Decrypt(Title title, string saveDir)
+		{
+			if (SettingsProvider.Settings.Decrypt)
+			{
+				AddLogEntry(String.Format(" + {0}: {1} starting decryption!", title.TitleType, Path.GetFileName(saveDir)));
+
+				Decryptor.Decrypt(saveDir);
+
+				if (SettingsProvider.Settings.DeleteAppFiles)
+				{
+					foreach (string f in Directory.EnumerateFiles(saveDir, "*.app")) { File.Delete(f); }
+					foreach (string f in Directory.EnumerateFiles(saveDir, "*.h3")) { File.Delete(f); }
+					foreach (string f in Directory.EnumerateFiles(saveDir, "title.*")) { File.Delete(f); }
+				}
+			}
+		}
+
+		private void DownloadFiles(string baseUrl, string saveDir, Tmd tmd)
+		{
+			List<string> contentIds = new List<string>();
+
+			// Download Content .app and .h3 files
+			for (uint i = 0; i < tmd.GetContentCount(); i++)
+			{
+				contentIds.Add(tmd.GetContentIDString(i));
+			}
+
+			Parallel.ForEach(contentIds, new ParallelOptions { MaxDegreeOfParallelism = SettingsProvider.Settings.MaxDegreeOfParallelism }, (content, state, i) =>
+			{
+				using WebClient wc = new WebClient();
+				string cidStr = content;
+
+				// .app files
+				try
+				{
+					string contentFilePath = saveDir + "\\" + cidStr + ".app";
+
+					if (SettingsProvider.Settings.SkipExistingFiles && File.Exists(contentFilePath) && (ulong)contentFilePath.GetFileLength() == tmd.GetContentSize((uint)i))
+					{
+						AddLogEntry(" + File: " + cidStr + ".app exists with correct size, skipping download...");
+					}
+					else
+					{
+						int pad = contentIds.Count.ToString().Length;
+						AddLogEntry(String.Format(" + Downloading Content No. {0} / {1} - {2}.app ({3} bytes)",
+							(i + 1).ToString().PadLeft(pad),
+							contentIds.Count.ToString().PadLeft(pad),
+							cidStr,
+							string.Format("{0:N0}", tmd.GetContentSize((uint)i))));
+						wc.DownloadFile(baseUrl + cidStr, saveDir + "\\" + cidStr + ".app");
+					}
+				}
+				catch (WebException e)
+				{
+					AddLogEntry(" + ERROR! Could not download " + cidStr + ".app");
+					throw e;
+				}
+				catch (IOException e)
+				{
+					AddLogEntry(" + ERROR! Could not save " + cidStr + ".app");
+					throw e;
+				}
+
+				if (SettingsProvider.Settings.DownloadH3Files)
+				{
+					// .h3 files
+					try
+					{
+						AddLogEntry(String.Format(" + Downloading H3 for Content No.{0} from Nintendo CDN - {1}.h3", i + 1, cidStr));
+						wc.DownloadFile(baseUrl + cidStr + ".h3", saveDir + "\\" + cidStr + ".h3");
+					}
+					catch (WebException e)
+					{
+						if (((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.NotFound)
+							AddLogEntry(String.Format(" + File {0}.h3 not found, ignoring...", cidStr));
+						else
+						{
+							AddLogEntry(" + ERROR! Could not download " + cidStr + ".h3");
+							throw e;
+						}
+					}
+					catch (IOException e)
+					{
+						AddLogEntry(" + ERROR! Could not save " + cidStr + ".h3");
+						throw e;
+					}
+				}
+			});
 		}
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0063:Einfache using-Anweisung verwenden", Justification = "<Ausstehend>")]
@@ -276,109 +366,13 @@ namespace nusdm
 				  }
 			  });
 		}
-
-		private void DownloadFiles(string baseUrl, string saveDir, Tmd tmd)
-		{
-			List<string> contentIds = new List<string>();
-
-			// Download Content .app and .h3 files
-			for (uint i = 0; i < tmd.GetContentCount(); i++)
-			{
-				contentIds.Add(tmd.GetContentIDString(i));
-			}
-
-			Parallel.ForEach(contentIds, new ParallelOptions { MaxDegreeOfParallelism = SettingsProvider.Settings.MaxDegreeOfParallelism }, (content, state, i) =>
-			{
-				using WebClient wc = new WebClient();
-				string cidStr = content;
-
-				// .app files
-				try
-				{
-					string contentFilePath = saveDir + "\\" + cidStr + ".app";
-
-					if (SettingsProvider.Settings.SkipExistingFiles && File.Exists(contentFilePath) && (ulong)contentFilePath.GetFileLength() == tmd.GetContentSize((uint)i))
-					{
-						AddLogEntry(" + File: " + cidStr + ".app exists with correct size, skipping download...");
-					}
-					else
-					{
-						int pad = contentIds.Count.ToString().Length;
-						AddLogEntry(String.Format(" + Downloading Content No. {0} / {1} - {2}.app ({3} bytes)",
-							(i + 1).ToString().PadLeft(pad),
-							contentIds.Count.ToString().PadLeft(pad),
-							cidStr,
-							string.Format("{0:N0}", tmd.GetContentSize((uint)i))));
-						wc.DownloadFile(baseUrl + cidStr, saveDir + "\\" + cidStr + ".app");
-					}
-				}
-				catch (WebException e)
-				{
-					AddLogEntry(" + ERROR! Could not download " + cidStr + ".app");
-					throw e;
-				}
-				catch (IOException e)
-				{
-					AddLogEntry(" + ERROR! Could not save " + cidStr + ".app");
-					throw e;
-				}
-
-				if (SettingsProvider.Settings.DownloadH3Files)
-				{
-					// .h3 files
-					try
-					{
-						AddLogEntry(String.Format(" + Downloading H3 for Content No.{0} from Nintendo CDN - {1}.h3", i + 1, cidStr));
-						wc.DownloadFile(baseUrl + cidStr + ".h3", saveDir + "\\" + cidStr + ".h3");
-					}
-					catch (WebException e)
-					{
-						if (((HttpWebResponse)e.Response).StatusCode == HttpStatusCode.NotFound)
-							AddLogEntry(String.Format(" + File {0}.h3 not found, ignoring...", cidStr));
-						else
-						{
-							AddLogEntry(" + ERROR! Could not download " + cidStr + ".h3");
-							throw e;
-						}
-					}
-					catch (IOException e)
-					{
-						AddLogEntry(" + ERROR! Could not save " + cidStr + ".h3");
-						throw e;
-					}
-				}
-			});
-		}
-
-		private void Decrypt(Title title, string saveDir)
-		{
-			if (SettingsProvider.Settings.Decrypt)
-			{
-				int rc = Decryptor.Decrypt(saveDir);
-				if (rc == 0)
-				{
-					AddLogEntry(String.Format(" + {0}: {1} decrypted!", title.TitleType, Path.GetFileName(saveDir)));
-				}
-				else
-				{
-					AddLogEntry(" + DECRYPTION FAILED");
-				}
-				if (SettingsProvider.Settings.DeleteAppFiles)
-				{
-					foreach (string f in Directory.EnumerateFiles(saveDir, "*.app")) { File.Delete(f); }
-					foreach (string f in Directory.EnumerateFiles(saveDir, "*.h3")) { File.Delete(f); }
-					foreach (string f in Directory.EnumerateFiles(saveDir, "title.*")) { File.Delete(f); }
-				}
-			}
-		}
-
 		private void InitializeCommands()
 		{
-			CmdDownloadTitle = new RelayCommand(() => DownloadTitle(SelectedItem.TitleId));
+			CmdDownloadTitle = new RelayCommand(() => { if (SelectedItem != null) DownloadTitle(SelectedItem.TitleId); });
 
-			CmdDownloadUpdate = new RelayCommand(() => DownloadTitle("0005000E" + SelectedItem.TitleId.Substring(8, 8)));
+			CmdDownloadUpdate = new RelayCommand(() => { if (SelectedItem != null) DownloadTitle("0005000E" + SelectedItem.TitleId.Substring(8, 8)); });
 
-			CmdDownloadDlc = new RelayCommand(() => DownloadTitle("0005000C" + SelectedItem.TitleId.Substring(8, 8)));
+			CmdDownloadDlc = new RelayCommand(() => { if (SelectedItem != null) DownloadTitle("0005000C" + SelectedItem.TitleId.Substring(8, 8)); });
 
 			CmdCopyName = new RelayCommand(() =>
 							{

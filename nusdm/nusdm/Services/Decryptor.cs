@@ -17,24 +17,22 @@ namespace nusdm
 		static readonly string[] files = { "msvcr120d.dll", "libeay32.dll", "CDecrypt_v2.0b.exe" };
 		static readonly string tmp = Path.GetTempPath();
 		static string destination = "";
-		static Dictionary<string, string> hashes = new Dictionary<string, string>();
+		static readonly Dictionary<string, string> hashes = new Dictionary<string, string>();
 
 		#endregion Private Fields
 
 
 		#region Public Methods
 
-		public static int Decrypt(string path)
+		public static void Decrypt(string path)
 		{
 			destination = path;
 
 			CopyFiles();
 
-			int rc = Start();
+			Start();
 
 			DeleteFiles();
-
-			return rc;
 		}
 
 		public static void DownloadCDecrypt()
@@ -73,11 +71,9 @@ namespace nusdm
 
 		public static string GetHashMD5(byte[] stream)
 		{
-			using (MD5 md5 = new MD5CryptoServiceProvider())
-			{
-				byte[] retVal = md5.ComputeHash(stream);
-				return BitConverter.ToString(retVal).Replace("-", ""); // hex string
-			}
+			using MD5 md5 = new MD5CryptoServiceProvider();
+			byte[] retVal = md5.ComputeHash(stream);
+			return BitConverter.ToString(retVal).Replace("-", ""); // hex string
 		}
 
 		private static void CopyFiles()
@@ -105,6 +101,7 @@ namespace nusdm
 				}
 			}
 		}
+		
 		private static int Start()
 		{
 			string fileName = destination + "\\" + files[2];

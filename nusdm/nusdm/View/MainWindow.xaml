@@ -5,6 +5,7 @@
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:local="clr-namespace:nusdm"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	Title="{Binding WindowTitle, TargetNullValue=NUS Download Manager}"
 	Width="580"
 	Height="419"
 	FocusManager.FocusedElement="{Binding ElementName=txtFilter}"
@@ -13,8 +14,7 @@
 	TextOptions.TextFormattingMode="Display"
 	UseLayoutRounding="True"
 	WindowStartupLocation="CenterScreen"
-	mc:Ignorable="d"
-	Title="{Binding WindowTitle, TargetNullValue=NUS Download Manager}">
+	mc:Ignorable="d">
 
 	<Window.Resources>
 
